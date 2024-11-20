@@ -29,6 +29,6 @@ jobs:
         aws codebuild wait build-completion --id $build_id
         build_status=$(aws codebuild batch-get-builds --ids $build_id --query 'builds[0].buildStatus' --output text)
         if [ "$build_status" != "SUCCEEDED" ]; then
-          echo "CodeBuild failed with the status: $build_status"
+          echo "CodeBuild failed with status: $build_status"
           exit 1
         fi
