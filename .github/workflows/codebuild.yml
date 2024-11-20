@@ -1,0 +1,34 @@
+name: CodeBuild with Runner Group
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  trigger-codebuild:
+    runs-on: [self-hosted, linux, x64, your-runner-group-name]
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ASIA32WXPXTCN2DDZV5C
+        aws-secret-access-key: XPmvcJ4PE1rt2/tqAvbIs+epgj4KNCp+qD0pel6v
+        aws-region: us-east-1
+    
+    - name: Run CodeBuild
+      run: |
+        aws codebuild start-build --project-name OrgATnTcheck
+    
+    - name: Wait for CodeBuild completion
+      run: |
+        build_id=$(aws codebuild list-builds-for-project --project-name OrgATnTcheck --sort-order DESCENDING --max-items 1 --query 'ids[0]' --output text)
+        aws codebuild wait build-completion --id $build_id
+        build_status=$(aws codebuild batch-get-builds --ids $build_id --query 'builds[0].buildStatus' --output text)
+        if [ "$build_status" != "SUCCEEDED" ]; then
+          echo "CodeBuild failed with status: $build_status"
+          exit 1
+        fi
