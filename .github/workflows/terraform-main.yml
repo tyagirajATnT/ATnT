@@ -1,0 +1,114 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  detect_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      root: ${{ steps.check_changes.outputs.root }}
+      vpc: ${{ steps.check_changes.outputs.vpc }}
+      rds: ${{ steps.check_changes.outputs.rds }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Detect changes
+      id: check_changes
+      run: |
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^terraform/modules/vpc/"; then
+          echo "vpc=true" >> $GITHUB_OUTPUT
+        else
+          echo "vpc=false" >> $GITHUB_OUTPUT
+        fi
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^terraform/modules/rds/"; then
+          echo "rds=true" >> $GITHUB_OUTPUT
+        else
+          echo "rds=false" >> $GITHUB_OUTPUT
+        fi
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^terraform/" && ! git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^terraform/modules/"; then
+          echo "root=true" >> $GITHUB_OUTPUT
+        else
+          echo "root=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Debug - Print detected changes
+      run: |
+        echo "Root changes: ${{ steps.check_changes.outputs.root }}"
+        echo "VPC changes: ${{ steps.check_changes.outputs.vpc }}"
+        echo "RDS changes: ${{ steps.check_changes.outputs.rds }}"
+
+  terraform:
+    needs: detect_changes
+    if: ${{ needs.detect_changes.outputs.root == 'true' || needs.detect_changes.outputs.vpc == 'true' || needs.detect_changes.outputs.rds == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+    
+    - name: Debug Repo details
+      run: |
+        echo "GitHub Ref: ${{ github.ref }}"
+        echo "GitHub Event Name: ${{ github.event_name }}"
+        echo "GitHub Repository: ${{ github.repository }}"
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::813274479812:role/GithubATnTRole
+        aws-region: us-east-1
+
+    - name: Debug - Print Condition Variables
+      run: |
+        echo "Root changes: ${{ needs.detect_changes.outputs.root }}"
+        echo "VPC changes: ${{ needs.detect_changes.outputs.vpc }}"
+        echo "RDS changes: ${{ needs.detect_changes.outputs.rds }}"
+
+    - name: Terraform Init
+      run: |
+        cd ./terraform
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd ./terraform
+        if [[ "${{ needs.detect_changes.outputs.vpc }}" == 'true' ]]; then
+          echo "Planning changes for VPC module..."
+          terraform plan -target=module.vpc
+        elif [[ "${{ needs.detect_changes.outputs.rds }}" == 'true' ]]; then
+          echo "Planning changes for RDS module..."
+          terraform plan -target=module.rds
+        elif [[ "${{ needs.detect_changes.outputs.root }}" == 'true' ]]; then
+          echo "Planning changes for all modules..."
+          terraform plan
+        else
+          echo "No changes detected, skipping plan"
+        fi
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+      run: |
+        cd ./terraform
+        if [[ "${{ needs.detect_changes.outputs.vpc }}" == 'true' ]]; then
+          echo "Applying changes to VPC module..."
+          terraform apply -auto-approve -target=module.vpc
+        elif [[ "${{ needs.detect_changes.outputs.rds }}" == 'true' ]]; then
+          echo "Applying changes to RDS module..."
+          terraform apply -auto-approve -target=module.rds
+        elif [[ "${{ needs.detect_changes.outputs.root }}" == 'true' ]]; then
+          echo "Applying changes to all modules..."
+          terraform apply -auto-approve
+        else
+          echo "No changes detected, skipping apply"
+        fi
+        
