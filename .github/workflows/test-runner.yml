@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, aws-codebuild] 
+    runs-on: [self-hosted, aws-codebuild]  
     
     steps:
       - uses: actions/checkout@v3
@@ -17,10 +17,6 @@ jobs:
           echo "Hello from CodeBuild runner!"
           echo "Current directory: $(pwd)"
           echo "Directory contents: $(ls -la)"
-          echo "Environment variables:"
-          env
-          echo "AWS Version:"
-          aws --version
           
       - name: Test AWS Authentication
         run: |
@@ -32,3 +28,7 @@ jobs:
           uname -a
           python3 --version
           node --version
+
+      - name: Keep Build Active
+        run: |
+          echo "Build completed successfully"
