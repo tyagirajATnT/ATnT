@@ -20,12 +20,38 @@ phases:
       
   pre_build:
     commands:
-      - TOKEN=$(curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/orgs/${GITHUB_ORG}/actions/runners/registration-token | jq -r .token)
-      - ./config.sh --url https://github.com/${GITHUB_ORG} --token ${TOKEN} --name "aws-codebuild-runner" --runnergroup ${RUNNER_GROUP} --labels aws-codebuild,linux,x64 --unattended --ephemeral
-      
+      - cd /root/actions-runner
+      - |
+        TOKEN=$(curl -X POST \
+          -H "Authorization: Bearer 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" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/orgs/tyagirajATnT/actions/runners/registration-token" | 
+          jq -r .token)
+      - echo "Token acquisition status:" $?
+      - |
+        if [ -z "$TOKEN" ]; then
+          echo "Failed to acquire token. Response:"
+          curl -H "Authorization: Bearer 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" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/tyagirajATnT"
+          exit 1
+        fi
+      - echo "Token acquired successfully"
+      - ./config.sh --url "https://github.com/tyagirajATnT" --token ${TOKEN} --name "aws-codebuild-runner" --runnergroup "ATTRunner" --labels aws-codebuild,linux,x64 --unattended --ephemeral
+      - echo "Runner configuration exit code:" $?    
   build:
     commands:
-      - ./run.sh
+      - cd /root/actions-runner
+      - ./run.sh &
+      - sleep 30    # Give the runner time to connect
+      - |
+        while true; do
+          if ! pgrep -f "./run.sh" > /dev/null; then
+            echo "Runner process has stopped"
+            exit 1
+          fi
+          sleep 60
+        done
 
   post_build:
     commands:
