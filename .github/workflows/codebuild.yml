@@ -11,10 +11,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
       with:
-        role-to-assume: arn:aws:iam::813274479812:role/GithubATnTRole
+        aws-access-key-id: ASIA32WXPXTCB7RFMSRH
+        aws-secret-access-key: MH7Lff6mOS4HhIsZDl15jfKmnSZ23cIk8vYDm97n
+        aws-session-token: IQoJb3JpZ2luX2VjENX//////////wEaCXVzLWVhc3QtMSJHMEUCIQCkovDIaEs5kBrKaujA7uONYeqapcOOOJYtzlpr4LozJQIgCbffCkaAkNaV+Lye7+kvxu+A2I6YM5FGqtmpI/w0d0gqqAIIjf//////////ARACGgw4MTMyNzQ0Nzk4MTIiDMmV6jyUP1NgtwkECyr8ARW25YmbyGyOOHgrwiZOcaDl7K+bzd9NAfItCLy+axRh/aZlG3D2rme678GkHsy/oTlNvp53BhrS4pWPtloAApWJUjfC6FttvYeISJdGxItqPo+PjvxK1qUehSTL8Ghsdz0GVg0fP/cmBqVz+FW4e8doQa4tKdLGthFF3KHY0X+Xq6IfLVm67/PZppiJMWv3OjFdVCvNtHgfHhTkYG/7TPvb9vc/E0/NindBPlsnU3HqvdIObZEUgjXMN94R5XZ5V5Am3xQkfD4xYSBw1HygDTb7fuknmAZC5V82m2b9GLkh4eeyLib0zKtkzVTKwEMmQEv0H0hSKuu8nVDAcjDd4eC6BjqdAZWiLSPEaCxrM82Jn74alDakg8TR/ChZJCDsQiineL0yLsqsoUhZzxYHj8qDZ9sl7jk8uOl0CH+1/nwNYNwj8ksGv/dJa2iT5NuQomEOFQxx1eyjTCJDCaUz8jb8heddn1s4+iolOmTH7+xAE/CzJksUPYbQ4i3oXod1gVMWNPAveEWTa+L/nlZs9yuNI4Z4QqQTPS9SnVHT/EVub3k=
         aws-region: us-east-1
     
     - name: Start CodeBuild
