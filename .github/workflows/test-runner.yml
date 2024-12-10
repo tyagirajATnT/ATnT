@@ -1,30 +1,14 @@
-name: Test CodeBuild Runner
+name: Simple Test
 
-on:
-  workflow_dispatch:  
-  push:
-    branches: [ main ]
+on: 
+  workflow_dispatch:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64, aws-codebuild]  # Exactly matching the runner labels
-    
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Test Environment
+      - name: Simple Test
         run: |
-          echo "Hello from CodeBuild runner!"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents: $(ls -la)"
-          
-      - name: Test AWS Authentication
-        run: |
-          aws sts get-caller-identity
-          
-      - name: Test Basic Commands
-        run: |
-          echo "Testing system commands..."
-          uname -a
-          python3 --version
-          node --version
+          echo "Hello from runner"
+          pwd
+          ls -la
