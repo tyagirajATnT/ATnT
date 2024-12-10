@@ -12,11 +12,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
       with:
-        aws-access-key-id: ASIA32WXPXTCN2DDZV5C
-        aws-secret-access-key: XPmvcJ4PE1rt2/tqAvbIs+epgj4KNCp+qD0pel6v
+        role-to-assume: arn:aws:iam::813274479812:role/GithubATnTRole
         aws-region: us-east-1
     
     - name: Run CodeBuild
