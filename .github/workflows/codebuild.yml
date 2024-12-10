@@ -1,35 +1,65 @@
-name: CodeBuild with Runner Group
+name: CodeBuild Runner Setup
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
 
 jobs:
   trigger-codebuild:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
       with:
-        aws-access-key-id: ASIA32WXPXTCGGJ5MCFM
-        aws-secret-access-key: GG8vXFBO2LwRTS9KLKpixae6px1WTpPCCJW6BfC0
-        aws-session-token: IQoJb3JpZ2luX2VjEM///////////wEaCXVzLWVhc3QtMSJIMEYCIQDdBpsrYGcV7/bY1PCgSRVKyI1D9c8UZlFmQH+VQJrAlQIhAPpZseaSf9q1XxDeADqgKe6Rij0PS6vUtXjYMpd16rghKqgCCIj//////////wEQAhoMODEzMjc0NDc5ODEyIgwtUA21A25sGYaY+PUq/AGVRPyzo0FIsO8dCJQh4s/ov/ztqv0UGBjwAsixV1xewRlKSrUmn6FRi4pzO3GZw9uAZGb3thrGcaT3x/bfgP+dIX94Fbsc5bbZFKW09CX/3apu4wtgbcmPZxC6xKBIzBYeVYYYNFx3xa6LZVkTyDLxJpV+DdlAaoTVDHifBViLS/BHrdFREPizHFbL6j+yJWQDLjagivrg9dGVIZWDBegg6AFJ+sd0GKKmYEtiKJkJHS8i4FY+9xBiPpohMMuEldOVlbSCjnlhsG9BeL9iVol2HnVySXNeoukFWQTH+V1udldkx85VFfledvpHiAe1y2udtAvV/zxXUo9EqKIwjMnfugY6nAHNJWkyG/LL+/C42vdPQM+p1o8AuRUHV5P/5Znwh+S8+6jvPybP2lVWjdEmsHkE9KPfFRyWFZ2oPFNPGfzrSYw+UhYDOZHNgK0glwmQ70ZpNsM+CR1rdqYrCpcKfg25wOmSI4js5/C6zlLjqDPAioyA5J73SGveP4U4KQSqqwT41lQ+PeJjMhFqtLnIGv1isqfFmYwQOAMIX2Owzn0=
+        role-to-assume: arn:aws:iam::813274479812:role/GithubATnTRole
         aws-region: us-east-1
     
-    - name: Run CodeBuild
+    - name: Start CodeBuild
+      id: start-build
       run: |
-        aws codebuild start-build --project-name GithubATnTPOC
+        # Start the build and capture the build ID
+        BUILD_ID=$(aws codebuild start-build \
+          --project-name GithubATnTPOC \
+          --query 'build.id' \
+          --output text)
+        echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+        echo "Started build with ID: $BUILD_ID"
     
-    - name: Wait for CodeBuild completion
+    - name: Wait for Build Completion
       run: |
-        build_id=$(aws codebuild list-builds-for-project --project-name GithubATnTPOC --sort-order DESCENDING --max-items 1 --query 'ids[0]' --output text)
-        aws codebuild wait build-completion --id $build_id
-        build_status=$(aws codebuild batch-get-builds --ids $build_id --query 'builds[0].buildStatus' --output text)
-        if [ "$build_status" != "SUCCEEDED" ]; then
-          echo "CodeBuild failed with  status: $build_status"
+        BUILD_ID="${{ steps.start-build.outputs.build_id }}"
+        echo "Waiting for build $BUILD_ID to complete..."
+        
+        # Wait for build to complete and check status
+        aws codebuild wait build-completion --ids "$BUILD_ID"
+        
+        # Get the final build status
+        STATUS=$(aws codebuild batch-get-builds \
+          --ids "$BUILD_ID" \
+          --query 'builds[0].buildStatus' \
+          --output text)
+        
+        echo "Build completed with status: $STATUS"
+        
+        if [ "$STATUS" != "SUCCEEDED" ]; then
+          echo "Getting build logs..."
+          aws codebuild batch-get-builds \
+            --ids "$BUILD_ID" \
+            --query 'builds[0].logs.deepLink' \
+            --output text
+          echo "Build failed with status: $STATUS"
           exit 1
         fi
+
+    - name: Build Summary
+      if: always()
+      run: |
+        BUILD_ID="${{ steps.start-build.outputs.build_id }}"
+        echo "Build ID: $BUILD_ID"
+        aws codebuild batch-get-builds \
+          --ids "$BUILD_ID" \
+          --query 'builds[0].[buildStatus,logs.deepLink]' \
+          --output text
