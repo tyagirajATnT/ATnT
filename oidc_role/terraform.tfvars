@@ -1,0 +1,5 @@
+aws_region  = "us-east-1"
+github_org  = "ATT-DP5"
+github_repo = "apm0015835-pc-aws-mf-poc"
+role_name   = "ATTGithubOIDCRole"
+policy_arn  = "arn:aws:iam::aws:policy/YourDesiredPolicy"
