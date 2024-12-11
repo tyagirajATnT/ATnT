@@ -46,7 +46,7 @@ jobs:
   terraform:
     needs: detect_changes
     if: ${{ needs.detect_changes.outputs.root == 'true' || needs.detect_changes.outputs.vpc == 'true' || needs.detect_changes.outputs.rds == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
     permissions:
       id-token: write
       contents: read
