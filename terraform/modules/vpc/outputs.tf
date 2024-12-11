@@ -22,7 +22,3 @@ output "vpc_flow_log_id" {
   value = aws_flow_log.main.id
 }
 
-# Remove the following output as it no longer exists
-# output "route53_query_log_id" {
-#   value = aws_route53_query_log.main.id
-# }
