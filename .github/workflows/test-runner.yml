@@ -10,6 +10,7 @@ jobs:
       - name: Check runner
         run: |
           echo "Hello from ${{ runner.name }}!"
+          echo "Runner group: ${{ runner.group }}"
           echo "OS: $(uname -a)"
           echo "Current directory: $(pwd)"
           echo "Directory contents:"
