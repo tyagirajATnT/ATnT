@@ -8,11 +8,14 @@ on:
 jobs:
   trigger-codebuild:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
     - uses: actions/checkout@v3
     
     - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v3
       with:
         role-to-assume: arn:aws:iam::813274479812:role/GithubATnTRole
         aws-region: us-east-1
@@ -20,7 +23,6 @@ jobs:
     - name: Start CodeBuild
       id: start-build
       run: |
-        # Start the build and capture the build ID
         BUILD_ID=$(aws codebuild start-build \
           --project-name GithubATnTPOC \
           --query 'build.id' \
@@ -33,26 +35,28 @@ jobs:
         BUILD_ID="${{ steps.start-build.outputs.build_id }}"
         echo "Waiting for build $BUILD_ID to complete..."
         
-        # Wait for build to complete and check status
-        aws codebuild wait build-completion --ids "$BUILD_ID"
-        
-        # Get the final build status
-        STATUS=$(aws codebuild batch-get-builds \
-          --ids "$BUILD_ID" \
-          --query 'builds[0].buildStatus' \
-          --output text)
-        
-        echo "Build completed with status: $STATUS"
-        
-        if [ "$STATUS" != "SUCCEEDED" ]; then
-          echo "Getting build logs..."
-          aws codebuild batch-get-builds \
+        while true; do
+          STATUS=$(aws codebuild batch-get-builds \
             --ids "$BUILD_ID" \
-            --query 'builds[0].logs.deepLink' \
-            --output text
-          echo "Build failed with status: $STATUS"
-          exit 1
-        fi
+            --query 'builds[0].buildStatus' \
+            --output text)
+          
+          echo "Current build status: $STATUS"
+          
+          if [ "$STATUS" = "SUCCEEDED" ]; then
+            echo "Build completed successfully!"
+            break
+          elif [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "STOPPED" ] || [ "$STATUS" = "TIMED_OUT" ]; then
+            echo "Build failed with status: $STATUS"
+            aws codebuild batch-get-builds \
+              --ids "$BUILD_ID" \
+              --query 'builds[0].logs.deepLink' \
+              --output text
+            exit 1
+          fi
+          
+          sleep 30
+        done
 
     - name: Build Summary
       if: always()
