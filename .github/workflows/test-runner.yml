@@ -1,17 +1,23 @@
-name: Test CodeBuild Runner
+name: Test Runner
 
-on: 
+on:
   workflow_dispatch:
+    inputs:
+      runner_name:
+        description: 'Name of the runner to test'
+        required: true
+        default: 'aws-codebuild-runner'
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64, aws-codebuild]
+    runs-on: ${{ github.event.inputs.runner_name }}
     steps:
-      - name: Simple Test
+      - name: Check runner
         run: |
-          echo "Hello from CodeBuild runner!"
-          pwd
+          echo "Hello from ${{ runner.name }}!"
+          echo "OS: $(uname -a)"
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
           ls -la
-          whoami
-          echo "Runner name: ${{ runner.name }}"
-          echo "Runner labels: ${{ runner.labels }}"
+          echo "Environment variables:"
+          env
