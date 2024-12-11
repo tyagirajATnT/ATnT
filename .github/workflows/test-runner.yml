@@ -1,4 +1,4 @@
-name: Simple Test
+name: Test CodeBuild Runner
 
 on: 
   workflow_dispatch:
@@ -9,6 +9,9 @@ jobs:
     steps:
       - name: Simple Test
         run: |
-          echo "Hello from runner"
+          echo "Hello from CodeBuild runner!"
           pwd
           ls -la
+          whoami
+          echo "Runner name: ${{ runner.name }}"
+          echo "Runner labels: ${{ runner.labels }}"
