@@ -2,15 +2,10 @@ name: Test Runner
 
 on:
   workflow_dispatch:
-    inputs:
-      runner_name:
-        description: 'Name of the runner to test'
-        required: true
-        default: 'aws-codebuild-runner'
 
 jobs:
   test:
-    runs-on: ${{ github.event.inputs.runner_name }}
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
     steps:
       - name: Check runner
         run: |
