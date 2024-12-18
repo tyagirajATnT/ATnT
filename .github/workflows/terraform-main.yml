@@ -43,8 +43,37 @@ jobs:
         echo "VPC changes: ${{ steps.check_changes.outputs.vpc }}"
         echo "RDS changes: ${{ steps.check_changes.outputs.rds }}"
 
+  security_scan:
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+
+  lint:
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+      - name: Terraform Format
+        run: terraform fmt -check
+
+  cost_estimation:
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      - name: Run Infracost
+        run: infracost breakdown --path .
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
   terraform:
-    needs: detect_changes
+    needs: [detect_changes, security_scan, lint, cost_estimation]
     if: ${{ needs.detect_changes.outputs.root == 'true' || needs.detect_changes.outputs.vpc == 'true' || needs.detect_changes.outputs.rds == 'true' }}
     runs-on: [self-hosted, Linux, X64, aws-codebuild]
     permissions:
@@ -96,7 +125,7 @@ jobs:
         fi
 
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         cd ./terraform
         if [[ "${{ needs.detect_changes.outputs.vpc }}" == 'true' ]]; then
@@ -111,4 +140,17 @@ jobs:
         else
           echo "No changes detected, skipping apply"
         fi
-        
+
+  notify:
+    needs: terraform
+    runs-on: [self-hosted, Linux, X64, aws-codebuild]
+    if: always()
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: Deployment ${{ job.status }} for ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
