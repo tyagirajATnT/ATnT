@@ -1,19 +1,13 @@
-name: Test Runner
-
+name: Test Runner Flow
 on:
   workflow_dispatch:
-
+  
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64, aws-codebuild]
+    runs-on: self-hosted
     steps:
-      - name: Check runner
+      - name: Test
         run: |
-          echo "Hello from ${{ runner.name }}!"
-          echo "Runner group: ${{ runner.group }}"
-          echo "OS: $(uname -a)"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
-          echo "Environment variables:"
-          env
+          echo "Testing runner flow"
+          echo "Runner name: ${{ runner.name }}"
+          date
