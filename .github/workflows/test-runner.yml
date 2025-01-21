@@ -1,13 +1,61 @@
-name: Test Runner Flow
+name: Runner Test Suite
+ 
 on:
   workflow_dispatch:
-  
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: true
+        default: 'basic'
+        type: choice
+        options:
+          - basic
+          - docker
+          - system
+ 
 jobs:
-  test:
+  j1:
     runs-on: self-hosted
     steps:
-      - name: Test
-        run: |
-          echo "Testing runner flow"
-          echo "Runner name: ${{ runner.name }}"
-          date
+    - name: J1 Task
+      run: |
+        echo "Running J1"
+        
+  j2:
+    runs-on: self-hosted
+    steps:
+    - name: J2 Task
+      run: |
+        echo "Running J2"
+        
+  j3:
+    needs: [j1, j2]  # J3 runs after both J1 and J2 complete
+    runs-on: self-hosted
+    steps:
+    - name: J3 Task
+      run: |
+        echo "Running J3"
+        
+  j4:
+    needs: [j3]  # J4 runs after J3
+    runs-on: self-hosted
+    steps:
+    - name: J4 Task
+      run: |
+        echo "Running J4"
+        
+  j5:
+    needs: [j3]  # J5 runs after J3
+    runs-on: self-hosted
+    steps:
+    - name: J5 Task
+      run: |
+        echo "Running J5"
+        
+  j6:
+    needs: [j4, j5]  # J6 runs after both J4 and J5 complete
+    runs-on: self-hosted
+    steps:
+    - name: J6 Task
+      run: |
+        echo "Running J6"
