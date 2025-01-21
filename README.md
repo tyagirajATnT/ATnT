@@ -1,2 +1,2 @@
 # ATnT
-This is a project repo and pushing dummy commit
+This is a project repo and pushing dummy commits
